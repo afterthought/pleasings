@@ -1,0 +1,38 @@
+
+def make_package_dist(name:str="package-dist", labels:list=[], visibility:list=None):
+  package_json = filegroup(
+    name = f"package-json",
+    srcs = glob(["package*.json"]),
+    visibility = ["PUBLIC"]
+  )
+  packages = filegroup(
+    name = f"packages",
+    srcs = ["packages"],
+    visibility = ["PUBLIC"]
+  )
+  return genrule(
+    name = name,
+    deps =  [packages, package_json],
+    labels = ["npm"] + labels,
+    cmd = [
+      f"npm ci",
+      f"npm run dist --workspaces --if-present",
+    ],
+    pass_env = ["NPM_CONFIG_CACHE"], # This should be set in environment to speed up builds: export NPM_CONFIG_CACHE=$(npm config get cache)
+    outs = ["node_modules", "packages"],
+    visibility = visibility
+  )
+
+
+def make_package_build(package_name:str, dist:str, deps:list=[], labels:list=[], visibility:list=None):
+  genrule(
+    name = f"{package_name}-build",
+    deps = [dist] + deps,
+    labels = ["npm", "npm-build"] + labels,
+    srcs = glob(["package*.json"]),
+    cmd = [
+      f"OUT_DIR=$(pwd)/$OUTS npm run build -w packages/{package_name}"
+    ],
+    outs = [f"{package_name}#dist"],
+    visibility = visibility
+  )
