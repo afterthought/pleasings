@@ -10,15 +10,32 @@ def make_package_dist(name:str="package-dist", labels:list=[], visibility:list=N
     srcs = ["packages"],
     visibility = ["PUBLIC"]
   )
-  return genrule(
-    name = name,
-    deps =  [packages, package_json],
+
+  tmp = genrule(
+    name = f"{name}-node-modules",
+    # deps =  [packages, package_json],
+    srcs =  [packages, package_json],
     labels = ["npm"] + labels,
     cmd = [
+      f"mkdir -p $OUTS",
       f"npm ci",
       f"npm run dist --workspaces --if-present",
+      f"cp -a node_modules $OUTS/",
+      f"cp -a packages $OUTS/",
     ],
     pass_env = ["NPM_CONFIG_CACHE"], # This should be set in environment to speed up builds: export NPM_CONFIG_CACHE=$(npm config get cache)
+    outs = [f"{name}#tmp"],
+    visibility = visibility
+  )
+  return genrule(
+    name = name,
+    # deps =  [tmp, package_json],
+    srcs =  [tmp, package_json],
+    labels = ["npm"] + labels,
+    cmd = [
+      f"cp -a package-dist#tmp/node_modules ./",
+      f"cp -a package-dist#tmp/packages ./",
+    ],
     outs = ["node_modules", "packages"],
     visibility = visibility
   )
