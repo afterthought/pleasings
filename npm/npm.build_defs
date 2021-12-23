@@ -1,72 +1,67 @@
+package_name = package_name()
+def make_package_dist(labels:list=[], visibility:list=None):
 
-def make_package_dist(name:str="package-dist", labels:list=[], visibility:list=None):
-  package_json = filegroup(
-    name = f"package-json",
-    srcs = glob(["package*.json"]),
-    visibility = ["PUBLIC"]
-  )
   packages = filegroup(
     name = f"packages",
     srcs = ["packages"],
-    visibility = ["PUBLIC"]
   )
-
-  node_modules = genrule(
-    name = f"{name}-node-modules",
-    deps =  [packages],
+  package_json = filegroup(
+    name = f"package-json",
+    deps = [packages],
+    srcs = glob(["package*.json", "packages/**/package*.json"]),
+    visibility = visibility
+  )
+  deps = genrule(
+    name = f"deps",
     srcs =  [package_json],
-    labels = ["npm"] + labels,
-    cmd = [
-      f"mkdir -p $OUTS",
-      f"npm ci",
-      f"cp -a node_modules $OUTS/",
-      f"cp -a packages $OUTS/",
-    ],
-    pass_env = ["NPM_CONFIG_CACHE"], # This should be set in environment to speed up builds: export NPM_CONFIG_CACHE=$(npm config get cache)
-    outs = [f"{name}#modules"]
-  )
-
-  packages_dist = genrule(
-    name = f"{name}-dist",
-    deps =  [node_modules],
-    srcs =  [package_json, packages],
     labels = ["npm"] + labels,
     cmd = f"""
 set -e 
 mkdir -p $OUTS
-cp -a {name}#modules/node_modules ./
+
+cp -a $PKG/* $OUTS/
+(cd $OUTS && npm ci)
+
+""",
+    pass_env = ["NPM_CONFIG_CACHE"], # This should be set in environment to speed up builds: export NPM_CONFIG_CACHE=$(npm config get cache)
+    outs = ["_deps"]
+  )
+
+  return genrule(
+    name = f"dist",
+    deps =  [deps],
+    srcs =  [deps, packages],
+    labels = ["npm"] + labels,
+    cmd = f"""
+set -e 
+mkdir -p $OUTS
+root=$(pwd)
+cp -a $PKG/_deps/* $OUTS/
+
+cd $PKG
 for package in packages/**; 
   do 
-    [[ -e {name}#modules/$package/node_modules ]] && cp -a {name}#modules/$package/node_modules ./$package; 
+    cp -a $package/* $root/$OUTS/$package
   done
-npm run dist --workspaces --if-present
-cp -a packages $OUTS/packages/
+cd $root
+(cd $OUTS && npm run dist --workspaces --if-present)
 """,
-    outs = [f"{name}#dist"]
-  )
-  return genrule(
-    name = name,
-    deps =  [node_modules, packages_dist, package_json],
-    labels = ["npm"] + labels,
-    cmd = [
-      f"cp -a {name}#modules/node_modules ./",
-      f"cp -a {name}#dist/packages ./",
-    ],
-    outs = ["node_modules", "packages"],
+    outs = ["_dist"],
     visibility = visibility
   )
 
 
-
-def make_package_build(package_name:str, dist:str, deps:list=[], labels:list=[], visibility:list=None):
+def make_package_build(npm_package_name:str, dist:str, deps:list=[], labels:list=[], visibility:list=None):
   genrule(
-    name = f"{package_name}-build",
+    name = f"{npm_package_name}-build",
     deps = [dist] + deps,
     labels = ["npm", "npm-build"] + labels,
-    srcs = glob(["package*.json"]),
+    srcs = [dist],
     cmd = [
-      f"OUT_DIR=$(pwd)/$OUTS npm run build -w packages/{package_name}"
+      f"export OUT_DIR=$(pwd)/$OUTS",
+      f"(cd $PKG/_dist && npm run build -w packages/{npm_package_name})"
     ],
-    outs = [f"{package_name}#dist"],
+    outs = [f"{npm_package_name}#dist"],
     visibility = visibility
   )
+
