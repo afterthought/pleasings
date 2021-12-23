@@ -1,19 +1,32 @@
+
 package_name = package_name()
 def make_package_dist(labels:list=[], visibility:list=None):
-
-  packages = filegroup(
-    name = f"packages",
-    srcs = ["packages"],
-  )
   package_json = filegroup(
     name = f"package-json",
-    deps = [packages],
-    srcs = glob(["package*.json", "packages/**/package*.json"]),
+    srcs = glob(["package.json", "packages/**/package.json"]),
     visibility = visibility
   )
+  package_lock_json = filegroup(
+    name = f"package-json-lock",
+    srcs = ["package-lock.json"],
+    visibility = visibility
+  )
+  # This copy of files can be updated during semantic process without invalidating the node_modules
+  semantic_package = genrule(
+    name = f"semantic-package",
+    srcs = ["packages"],
+    cmd = f"""
+set -e 
+mkdir -p $OUTS
+
+cp -a $PKG/* $OUTS/
+""",
+    outs = ["_semantic"]
+  )
+
   deps = genrule(
     name = f"deps",
-    srcs =  [package_json],
+    srcs = [package_json, package_lock_json],
     labels = ["npm"] + labels,
     cmd = f"""
 set -e 
@@ -29,8 +42,7 @@ cp -a $PKG/* $OUTS/
 
   return genrule(
     name = f"dist",
-    deps =  [deps],
-    srcs =  [deps, packages],
+    srcs =  [deps, semantic_package],
     labels = ["npm"] + labels,
     cmd = f"""
 set -e 
@@ -38,7 +50,7 @@ mkdir -p $OUTS
 root=$(pwd)
 cp -a $PKG/_deps/* $OUTS/
 
-cd $PKG
+cd $PKG/_semantic
 for package in packages/**; 
   do 
     cp -a $package/* $root/$OUTS/$package
