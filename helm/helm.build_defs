@@ -73,6 +73,7 @@ def chart(name:str='chart', chart_name:str, version:str='', repo:str='', oci_reg
   fqn = build_rule(
       name = f'{name}_fqn',
       pass_env = params.keys(),
+      deps = [pre_dep_chart_files],
       cmd = f"""
 REPOSITORY={remote}
 if [[ $REPOSITORY = file* ]]; then
