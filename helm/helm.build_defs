@@ -79,7 +79,7 @@ REPOSITORY={remote}
 if [[ $REPOSITORY = file* ]]; then
     REPOSITORY="$REPOSITORY/{chart_dir}"
 fi
-CHART_NAME="{chart_name}"
+CHART_NAME='{chart_name}'
 cat >> $OUT <<EOL
 - name: "$CHART_NAME"\\n  version: "{version}"\\n  repository: "$REPOSITORY"
 EOL
