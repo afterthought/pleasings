@@ -59,9 +59,9 @@ def chart(name:str='chart', chart_name:str, version:str='', repo:str='', oci_reg
   )
 
 
-  chart_dir = f'$(basename $(out_dir {pre_dep_chart_files}))'
   if not chart_name:
-    chart_name = chart_dir
+    chart_name = f'$(basename $(out_dir {pre_dep_chart_files}))'
+    
   remote = f'{repo}'
   chart_folder = f'./$(out_dir {pre_dep_chart_files})'
   package_name = package_name()
@@ -77,11 +77,11 @@ def chart(name:str='chart', chart_name:str, version:str='', repo:str='', oci_reg
       cmd = f"""
 REPOSITORY={remote}
 if [[ $REPOSITORY = file* ]]; then
-    REPOSITORY="$REPOSITORY/{chart_dir}"
+    REPOSITORY="$REPOSITORY/{chart_name}"
 fi
-CHART_NAME={chart_name}
+
 cat >> $OUT <<EOL
-- name: "$CHART_NAME"\\n  version: "{version}"\\n  repository: "$REPOSITORY"
+- name: "{chart_name}"\\n  version: "{version}"\\n  repository: "$REPOSITORY"
 EOL
 """,
       outs = [f'{name}_fqn'],
@@ -120,6 +120,7 @@ cp {package_name}/Chart.lock ./
 rm -rf charts
 mkdir -p charts
 cp -r build/. charts/
+
 """,
   )
 
