@@ -19,7 +19,7 @@ def make_package_dist(labels:list=[], visibility:list=None):
 set -e 
 mkdir -p $OUTS
 
-cp -a $PKG/* $OUTS/
+cp -a $PKG/. $OUTS
 """,
     outs = ["_semantic"]
   )
@@ -32,7 +32,7 @@ cp -a $PKG/* $OUTS/
 set -e 
 mkdir -p $OUTS
 
-cp -a $PKG/* $OUTS/
+cp -a $PKG/. $OUTS
 (cd $OUTS && npm ci --ignore-scripts)
 
 """,
@@ -48,12 +48,12 @@ cp -a $PKG/* $OUTS/
 set -e 
 mkdir -p $OUTS
 root=$(pwd)
-cp -a $PKG/_deps/* $OUTS/
+cp -a $PKG/_deps/. $OUTS
 
 cd $PKG/_semantic
 for package in packages/**; 
   do 
-    cp -a $package/* $root/$OUTS/$package
+    cp -a $package/. $root/$OUTS/$package
   done
 cd $root
 (cd $OUTS && npm run dist --workspaces --if-present)
