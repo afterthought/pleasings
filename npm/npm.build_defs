@@ -3,7 +3,7 @@ package_name = package_name()
 def make_package_dist(labels:list=[], visibility:list=None):
   package_json = filegroup(
     name = f"package-json",
-    srcs = glob(["package.json", "packages/**/package.json"]),
+    srcs = glob(["package.json", ".npmrc", "packages/**/package.json"]),
     visibility = visibility
   )
   package_lock_json = filegroup(
