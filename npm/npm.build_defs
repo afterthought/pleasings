@@ -36,7 +36,7 @@ cp -a $PKG/* $OUTS/
 (cd $OUTS && npm ci)
 
 """,
-    pass_env = ["NPM_CONFIG_CACHE"], # This should be set in environment to speed up builds: export NPM_CONFIG_CACHE=$(npm config get cache)
+    pass_env = ["NPM_CONFIG_CACHE", "NODE_AUTH_TOKEN"], # This should be set in environment to speed up builds: export NPM_CONFIG_CACHE=$(npm config get cache)
     outs = ["_deps"]
   )
 
