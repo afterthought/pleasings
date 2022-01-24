@@ -5,6 +5,7 @@ def chart(name:str='chart', chart_name:str, version:str='', repo:str='', oci_reg
   if not repo:
     repo = check_config('DEFAULT_DOCKER_REPO', example='repo.com/repo')
 
+  labels += ['helm_chart=' + chart_name, 'helm']
   sub_charts = [sub_chart for sub_chart in sub_charts if sub_chart]
   sub_charts = [canonicalise(sub_chart) for sub_chart in sub_charts]
   containers = [canonicalise(container) for container in containers]
@@ -126,7 +127,7 @@ cp -r build/. charts/
   chart_files=filegroup(
     name = f'{name}',
     deps = [pre_dep_chart_files, update_rule],
-    labels = ["helm-chart"],
+    labels = labels + ["helm-chart"],
     srcs = [
         pre_dep_chart_files,
         update_rule
@@ -151,7 +152,7 @@ helm package {package_name} -d _out
   sub_chart_push_cmds='$(out_location %s)' % ';\n'.join(sub_charts_push)
   sh_cmd(
     name = f'{name}_helm_push',
-    labels = ["helm-push"],
+    labels = labels + ["helm-push"],
     deps = [pre_dep_chart_files] + sub_charts_push,
     srcs = [pre_dep_chart_files],
     cmd = f"""
@@ -167,7 +168,7 @@ helm push {chart_folder}/{chart_name}-{version}.tgz {remote}
   sub_chart_update_cmds='$(out_location %s)' % ';\n'.join(sub_charts_update)
   sh_cmd(
     name = f'{name}_helm_dependency_update',
-    labels = ["helm-dependency-update"],
+    labels = labels + ["helm-dependency-update"],
     deps = [pre_dep_chart_files] + sub_charts_update,
     srcs = [pre_dep_chart_files],
     cmd = f"""
@@ -178,7 +179,7 @@ helm dependency update {chart_folder}
   )
   sh_cmd(
     name = "_helm_chart_debug",
-    labels = ["helm-chart-debug"],
+    labels = labels + ["helm-chart-debug"],
     deps = [package_rule, chart_files] + sub_charts + sub_charts_push,
     srcs = {
       'chart_files': [chart_files],
